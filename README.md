@@ -52,8 +52,9 @@ local necesitás:
 - `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Project
   Settings → API en tu proyecto de Supabase.
 - `DATABASE_URL` y `DIRECT_URL` — Project Settings → Database (usar el
-  connection pooler para `DATABASE_URL` y la conexión directa para
-  `DIRECT_URL`, que es la que usa Prisma para migraciones).
+  connection pooler para `DATABASE_URL`, que es la que usa la app en
+  runtime vía `@prisma/adapter-pg`; y la conexión directa/session pooler
+  para `DIRECT_URL`, que usa `prisma.config.ts` para las migraciones).
 
 Spotify, Resend (email) y Sentry son opcionales hasta las fases 3–6 del
 roadmap.
@@ -111,6 +112,28 @@ entorno con red normal — local, CI, o Vercel — antes del primer deploy:
 El resto del proyecto (lint, typecheck, y un `next build` completo con las
 fuentes temporalmente stubeadas para poder verificar sin esa red) ya se
 comprobó sin errores antes de esta primera entrega.
+
+### Cambio real de Prisma 7: conexión ya no vive en `schema.prisma`
+
+Esta versión de Prisma (7.8.0) rompió compatibilidad respecto a lo que era
+estándar hasta hace poco: `datasource db { url = env(...) directUrl = ... }`
+ya no es válido en `schema.prisma` (error `P1012`), y `new PrismaClient()`
+sin argumentos tampoco funciona más. Esto se descubrió y resolvió durante
+el setup — no es un bug de este proyecto, es un cambio de la librería. La
+solución ya está aplicada:
+
+- `prisma.config.ts` (nuevo, raíz del proyecto) — le dice a la CLI de
+  Prisma (`migrate`, `studio`, etc.) qué `DIRECT_URL` usar. Carga
+  `.env.local` a mano porque la CLI corre por fuera de Next.
+- `src/shared/lib/prisma.ts` — ahora arma un `@prisma/adapter-pg` con
+  `DATABASE_URL` (el pooler) y se lo pasa a `new PrismaClient({ adapter })`,
+  que es el único constructor válido en esta versión.
+- `next.config.ts` — se agregó `serverExternalPackages` para `pg` y los
+  paquetes de Prisma, para que Next no intente empaquetarlos.
+
+Si en el futuro ves un error `P1012` sobre `url`/`directUrl` en
+`schema.prisma`, o `new PrismaClient()` se queja de que falta `adapter`,
+es este mismo cambio de versión — no hace falta re-investigarlo.
 
 ## Roadmap
 
