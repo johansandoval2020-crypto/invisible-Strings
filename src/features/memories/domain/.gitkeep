@@ -1,0 +1,2 @@
+Entidades, value objects y las interfaces de repositorio (puertos) del
+feature "memories". No debe importar nada de Next.js, Prisma ni Supabase.

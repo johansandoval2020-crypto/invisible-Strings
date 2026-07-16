@@ -1,0 +1,3 @@
+Implementaciones concretas de los puertos de domain/ para "profile"
+(repositorios Prisma, adaptadores de Supabase Storage, clientes de APIs
+externas). Unica capa del feature que puede importar @prisma/client.

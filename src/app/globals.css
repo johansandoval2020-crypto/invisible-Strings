@@ -1,0 +1,173 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ------------------------------------------------------------------ */
+/* Invisible String — Design Tokens                                    */
+/* Ver docs/ARCHITECTURE.md §7 Design System para la justificación      */
+/* de cada decisión (contraste, paleta pastel, movimiento, etc).        */
+/* ------------------------------------------------------------------ */
+
+:root {
+  --radius: 1rem;
+
+  /* Superficie base */
+  --background: #ffffff;
+  --background-cream: #faf6f0;
+  --card: #fff9f2;
+  --card-foreground: #2e2a2c;
+  --popover: #ffffff;
+  --popover-foreground: #2e2a2c;
+
+  /* Texto */
+  --foreground: #2e2a2c;
+  --muted: #f3ede6;
+  --muted-foreground: #6b6468;
+
+  /* Marca — pastel para fondos/acentos, "accent" oscurecido para texto/estado activo */
+  --pink-pastel: #f7d9e3;
+  --pink-accent: #e88baa;
+  --lavender-pastel: #e4d9f7;
+  --lavender-accent: #9b7fd1;
+  --sky-pastel: #d9eff7;
+  --sky-accent: #6fb3cc;
+  --beige: #ede3d9;
+
+  --primary: var(--lavender-accent);
+  --primary-foreground: #ffffff;
+  --secondary: var(--pink-pastel);
+  --secondary-foreground: #2e2a2c;
+  --accent: var(--sky-pastel);
+  --accent-foreground: #2e2a2c;
+
+  --destructive: #c2554f;
+  --destructive-foreground: #ffffff;
+
+  --border: #ece4dc;
+  --input: #ece4dc;
+  --ring: var(--lavender-accent);
+}
+
+.dark {
+  /* "Bajo las estrellas" — modo nocturno */
+  --background: #1b1a2e;
+  --background-cream: #201f38;
+  --card: #252340;
+  --card-foreground: #f5f1ec;
+  --popover: #252340;
+  --popover-foreground: #f5f1ec;
+
+  --foreground: #f5f1ec;
+  --muted: #2c2a4a;
+  --muted-foreground: #b3aec4;
+
+  --pink-pastel: #3a2a3c;
+  --pink-accent: #f0b8ce;
+  --lavender-pastel: #33305a;
+  --lavender-accent: #c9aeef;
+  --sky-pastel: #24384a;
+  --sky-accent: #a9dcee;
+  --beige: #2c2a4a;
+
+  --primary: var(--lavender-accent);
+  --primary-foreground: #1b1a2e;
+  --secondary: var(--pink-pastel);
+  --secondary-foreground: #f5f1ec;
+  --accent: var(--sky-pastel);
+  --accent-foreground: #f5f1ec;
+
+  --destructive: #e28b85;
+  --destructive-foreground: #1b1a2e;
+
+  --border: #34325a;
+  --input: #34325a;
+  --ring: var(--lavender-accent);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-background-cream: var(--background-cream);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-pink-pastel: var(--pink-pastel);
+  --color-pink-accent: var(--pink-accent);
+  --color-lavender-pastel: var(--lavender-pastel);
+  --color-lavender-accent: var(--lavender-accent);
+  --color-sky-pastel: var(--sky-pastel);
+  --color-sky-accent: var(--sky-accent);
+  --color-beige: var(--beige);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 0.5rem);
+  --radius-md: calc(var(--radius) - 0.25rem);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 0.5rem);
+
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-geist);
+
+  --shadow-soft: 0 1px 2px rgba(46, 42, 44, 0.04), 0 8px 24px rgba(46, 42, 44, 0.06);
+  --shadow-elevated:
+    0 2px 4px rgba(46, 42, 44, 0.06), 0 16px 40px rgba(46, 42, 44, 0.1);
+  --shadow-glow:
+    0 0 0 1px rgba(155, 127, 209, 0.12), 0 12px 32px rgba(155, 127, 209, 0.18);
+
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+  }
+
+  /* Respeta la preferencia del sistema por defecto; la clase .dark permite
+     forzar el modo nocturno desde el selector de tema del usuario. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: color-mix(in oklab, var(--background) 60%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid color-mix(in oklab, var(--background) 40%, transparent);
+  }
+}

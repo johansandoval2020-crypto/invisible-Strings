@@ -1,0 +1,2 @@
+Casos de uso del feature "music". Orquestan el dominio a través de las
+interfaces definidas en domain/ -- nunca importan infrastructure/ directo.

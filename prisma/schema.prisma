@@ -1,0 +1,323 @@
+// Invisible String — Prisma Schema
+// Ver docs/ARCHITECTURE.md §4 para el razonamiento detrás de cada modelo.
+// Nota: Row Level Security se gestiona por fuera de Prisma, en
+// supabase/migrations/ (Prisma no administra políticas RLS nativamente).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum EmotionTag {
+  HAPPY
+  EXCITED
+  GRATEFUL
+  NOSTALGIC
+  PEACEFUL
+  ROMANTIC
+  SAD
+  BITTERSWEET
+  PROUD
+  FUNNY
+}
+
+enum MemoryRole {
+  FAVORITE_SONG
+  PLAYLIST
+  MOMENT_SONG
+}
+
+enum FavoriteTargetType {
+  MEMORY
+  ALBUM
+  LETTER
+  SONG
+}
+
+enum CalendarEventType {
+  BIRTHDAY
+  ANNIVERSARY
+  TRIP
+  CUSTOM
+}
+
+model Couple {
+  id                    String    @id @default(uuid())
+  name                  String?
+  relationshipStartDate DateTime
+  anniversaryDate       DateTime?
+  inviteCode            String    @unique @default(uuid())
+  inviteExpiresAt       DateTime?
+  themePreference       String    @default("light") // "light" | "night"
+  timezone              String    @default("America/El_Salvador")
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  members        User[]
+  memories       Memory[]
+  albums         Album[]
+  letters        Letter[]
+  songs          Song[]
+  tags           Tag[]
+  locations      Location[]
+  people         Person[]
+  calendarEvents CalendarEvent[]
+  favorites      Favorite[]
+
+  @@index([inviteCode])
+  @@map("couples")
+}
+
+model User {
+  id          String   @id @default(uuid()) // igual al id de Supabase Auth
+  email       String   @unique
+  displayName String
+  avatarUrl   String?
+  coupleId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  couple          Couple?    @relation(fields: [coupleId], references: [id], onDelete: SetNull)
+  createdMemories Memory[]   @relation("MemoryAuthor")
+  letters         Letter[]   @relation("LetterAuthor")
+  favorites       Favorite[]
+
+  @@index([coupleId])
+  @@map("users")
+}
+
+model Memory {
+  id          String       @id @default(uuid())
+  coupleId    String
+  title       String
+  description String?
+  date        DateTime
+  mood        EmotionTag[]
+  weather     String?
+  isFavorite  Boolean      @default(false)
+  isHidden    Boolean      @default(false)
+  albumId     String?
+  locationId  String?
+  createdById String
+  deletedAt   DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  couple      Couple           @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  createdBy   User             @relation("MemoryAuthor", fields: [createdById], references: [id])
+  album       Album?           @relation(fields: [albumId], references: [id], onDelete: SetNull)
+  location    Location?        @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  images      MemoryImage[]
+  tags        MemoryTag[]
+  people      MemoryPerson[]
+  songs       MemorySong[]
+  relatedFrom MemoryRelation[] @relation("RelationSource")
+  relatedTo   MemoryRelation[] @relation("RelationTarget")
+
+  @@index([coupleId, date])
+  @@index([coupleId, isFavorite])
+  @@index([coupleId, deletedAt])
+  @@map("memories")
+}
+
+model MemoryImage {
+  id        String   @id @default(uuid())
+  memoryId  String
+  url       String
+  width     Int
+  height    Int
+  order     Int      @default(0)
+  isCover   Boolean  @default(false)
+  blurhash  String?
+  createdAt DateTime @default(now())
+
+  memory Memory @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+
+  @@index([memoryId, order])
+  @@map("memory_images")
+}
+
+model MemoryRelation {
+  id             String @id @default(uuid())
+  sourceMemoryId String
+  targetMemoryId String
+
+  source Memory @relation("RelationSource", fields: [sourceMemoryId], references: [id], onDelete: Cascade)
+  target Memory @relation("RelationTarget", fields: [targetMemoryId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceMemoryId, targetMemoryId])
+  @@map("memory_relations")
+}
+
+model Album {
+  id            String    @id @default(uuid())
+  coupleId      String
+  title         String
+  description   String?
+  coverImageUrl String?
+  order         Int       @default(0)
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  couple   Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  memories Memory[]
+
+  @@index([coupleId, order])
+  @@map("albums")
+}
+
+model Tag {
+  id        String   @id @default(uuid())
+  coupleId  String
+  name      String
+  color     String   @default("#F2B8CC")
+  createdAt DateTime @default(now())
+
+  couple   Couple      @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  memories MemoryTag[]
+
+  @@unique([coupleId, name])
+  @@map("tags")
+}
+
+model MemoryTag {
+  memoryId String
+  tagId    String
+
+  memory Memory @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([memoryId, tagId])
+  @@map("memory_tags")
+}
+
+model Person {
+  id        String   @id @default(uuid())
+  coupleId  String
+  name      String
+  avatarUrl String?
+  createdAt DateTime @default(now())
+
+  couple   Couple         @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  memories MemoryPerson[]
+
+  @@unique([coupleId, name])
+  @@map("people")
+}
+
+model MemoryPerson {
+  memoryId String
+  personId String
+
+  memory Memory @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@id([memoryId, personId])
+  @@map("memory_people")
+}
+
+model Location {
+  id        String   @id @default(uuid())
+  coupleId  String
+  name      String
+  address   String?
+  lat       Float?
+  lng       Float?
+  createdAt DateTime @default(now())
+
+  couple   Couple   @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  memories Memory[]
+
+  @@unique([coupleId, name])
+  @@index([coupleId, lat, lng])
+  @@map("locations")
+}
+
+model Letter {
+  id              String    @id @default(uuid())
+  coupleId        String
+  authorId        String
+  title           String
+  contentMarkdown String
+  scheduledOpenAt DateTime?
+  openedAt        DateTime?
+  isArchived      Boolean   @default(false)
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  couple Couple @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  author User   @relation("LetterAuthor", fields: [authorId], references: [id])
+
+  @@index([coupleId, scheduledOpenAt])
+  @@index([coupleId, isArchived])
+  @@map("letters")
+}
+
+model Song {
+  id             String   @id @default(uuid())
+  coupleId       String
+  spotifyTrackId String
+  title          String
+  artist         String
+  albumArtUrl    String?
+  previewUrl     String?
+  spotifyUrl     String
+  createdAt      DateTime @default(now())
+
+  couple   Couple       @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  memories MemorySong[]
+
+  @@unique([coupleId, spotifyTrackId])
+  @@map("songs")
+}
+
+model MemorySong {
+  memoryId String
+  songId   String
+  role     MemoryRole @default(MOMENT_SONG)
+
+  memory Memory @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+  song   Song   @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@id([memoryId, songId, role])
+  @@map("memory_songs")
+}
+
+model CalendarEvent {
+  id                String            @id @default(uuid())
+  coupleId          String
+  title             String
+  type              CalendarEventType
+  date              DateTime
+  isRecurringYearly Boolean           @default(true)
+  linkedMemoryId    String?
+  createdAt         DateTime          @default(now())
+
+  couple Couple @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+
+  @@index([coupleId, date])
+  @@map("calendar_events")
+}
+
+model Favorite {
+  id         String             @id @default(uuid())
+  coupleId   String
+  userId     String
+  targetType FavoriteTargetType
+  targetId   String
+  createdAt  DateTime           @default(now())
+
+  couple Couple @relation(fields: [coupleId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetType, targetId])
+  @@index([coupleId, targetType])
+  @@map("favorites")
+}
