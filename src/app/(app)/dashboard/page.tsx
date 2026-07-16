@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { HeartHandshake, ImagePlus, Mail, Shuffle } from "lucide-react";
 
 import { PageContainer } from "@/shared/components/layout/page-container";
@@ -9,33 +10,45 @@ import {
   CardDescription,
 } from "@/shared/components/ui/card";
 import { EmptyState } from "@/shared/components/layout/empty-state";
+import { requireCoupleId } from "@/shared/lib/auth/get-current-user";
+import { getDashboardData } from "@/features/dashboard/application/use-cases";
 
 export const metadata: Metadata = { title: "Inicio" };
 
-const WIDGETS = [
-  {
-    icon: HeartHandshake,
-    title: "Días juntos",
-    description: "Se calcula en cuanto configures la fecha de inicio de su relación.",
-  },
-  {
-    icon: ImagePlus,
-    title: "Último recuerdo agregado",
-    description: "Todavía no han guardado ningún recuerdo.",
-  },
-  {
-    icon: Mail,
-    title: "Última carta",
-    description: "Escriban su primera carta cuando quieran.",
-  },
-  {
-    icon: Shuffle,
-    title: "Recuerdo aleatorio",
-    description: "Aparecerá acá apenas tengan algunos recuerdos guardados.",
-  },
-];
+export default async function DashboardPage() {
+  const coupleId = await requireCoupleId();
+  const data = await getDashboardData(coupleId);
 
-export default function DashboardPage() {
+  const widgets = [
+    {
+      icon: HeartHandshake,
+      title: "Días juntos",
+      description:
+        data.daysTogether !== null
+          ? `${data.daysTogether.toLocaleString("es")} días y contando.`
+          : "Configurá la fecha de inicio en Ajustes → Su espacio.",
+    },
+    {
+      icon: ImagePlus,
+      title: "Último recuerdo agregado",
+      description: data.lastMemory
+        ? data.lastMemory.title
+        : "Todavía no han guardado ningún recuerdo.",
+    },
+    {
+      icon: Mail,
+      title: "Última carta",
+      description: "Escriban su primera carta cuando quieran (Fase 3).",
+    },
+    {
+      icon: Shuffle,
+      title: "Recuerdo aleatorio",
+      description: data.randomMemory
+        ? data.randomMemory.title
+        : "Aparecerá acá apenas tengan algunos recuerdos guardados.",
+    },
+  ];
+
   return (
     <PageContainer className="flex flex-col gap-8">
       <div>
@@ -48,22 +61,34 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {WIDGETS.map((widget) => (
+        {widgets.map((widget) => (
           <Card key={widget.title}>
             <CardHeader>
               <widget.icon className="text-lavender-accent size-5" />
               <CardTitle className="mt-2 text-base">{widget.title}</CardTitle>
-              <CardDescription>{widget.description}</CardDescription>
+              <CardDescription className="line-clamp-2">
+                {widget.description}
+              </CardDescription>
             </CardHeader>
           </Card>
         ))}
       </div>
 
-      <EmptyState
-        icon={ImagePlus}
-        title="Todavía no hay recuerdos guardados"
-        description="Cuando agreguen su primer recuerdo, va a aparecer acá y en la línea del tiempo."
-      />
+      {data.totalMemories === 0 && (
+        <EmptyState
+          icon={ImagePlus}
+          title="Todavía no hay recuerdos guardados"
+          description="Cuando agreguen su primer recuerdo, va a aparecer acá y en la línea del tiempo."
+          action={
+            <Link
+              href="/moments"
+              className="text-lavender-accent text-sm font-medium underline underline-offset-4"
+            >
+              Ir a Nuestros Momentos
+            </Link>
+          }
+        />
+      )}
     </PageContainer>
   );
 }

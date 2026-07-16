@@ -3,10 +3,21 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/shared/lib/supabase/server";
+import { prisma } from "@/shared/lib/prisma";
 import { loginSchema, signupSchema } from "@/features/auth/application/schemas";
 
 export interface AuthActionResult {
   error?: string;
+}
+
+/**
+ * Solo permite redirects relativos dentro de la propia app (p.ej. volver a
+ * /invite/[code] después de loguearse) — nunca a una URL externa, para no
+ * abrir una puerta de open-redirect a través del parámetro `redirect`.
+ */
+function safeRedirectTarget(value: FormDataEntryValue | null): string | null {
+  if (typeof value !== "string") return null;
+  return value.startsWith("/") && !value.startsWith("//") ? value : null;
 }
 
 /**
@@ -34,7 +45,7 @@ export async function loginAction(
     return { error: "Correo o contraseña incorrectos" };
   }
 
-  redirect("/dashboard");
+  redirect(safeRedirectTarget(formData.get("redirect")) ?? "/dashboard");
 }
 
 export async function signupAction(
@@ -53,17 +64,29 @@ export async function signupAction(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: { data: { display_name: parsed.data.displayName } },
   });
 
-  if (error) {
+  if (error || !data.user) {
     return { error: "No pudimos crear tu cuenta. Probá con otro correo." };
   }
 
-  redirect("/dashboard");
+  // Supabase Auth solo administra credenciales — la fila de negocio en
+  // `users` (la que tiene coupleId, displayName, etc.) la creamos acá,
+  // usando el mismo id que le asignó Supabase para que ambas tablas
+  // queden alineadas 1:1. Ver docs/ARCHITECTURE.md §4.
+  await prisma.user.create({
+    data: {
+      id: data.user.id,
+      email: parsed.data.email,
+      displayName: parsed.data.displayName,
+    },
+  });
+
+  redirect(safeRedirectTarget(formData.get("redirect")) ?? "/settings/couple");
 }
 
 export async function signOutAction() {

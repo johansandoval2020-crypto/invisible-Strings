@@ -3,16 +3,17 @@ import { Images } from "lucide-react";
 
 import { PageContainer } from "@/shared/components/layout/page-container";
 import { EmptyState } from "@/shared/components/layout/empty-state";
-import { Button } from "@/shared/components/ui/button";
+import { requireCoupleId } from "@/shared/lib/auth/get-current-user";
+import { listMemories } from "@/features/memories/application/use-cases";
+import { MemoryGrid } from "@/features/memories/presentation/components/memory-grid";
+import { CreateMemoryDialog } from "@/features/memories/presentation/components/create-memory-dialog";
 
 export const metadata: Metadata = { title: "Nuestros Momentos" };
 
-/**
- * Fase 0: shell de la página. El grid + los carruseles horizontales
- * estilo Netflix (Recuerdos recientes, Nuestros viajes, Primeras veces…)
- * se implementan en la Fase 2 sobre el CRUD de la Fase 1.
- */
-export default function MomentsPage() {
+export default async function MomentsPage() {
+  const coupleId = await requireCoupleId();
+  const memories = await listMemories(coupleId);
+
   return (
     <PageContainer>
       <div className="mb-6 flex items-center justify-between">
@@ -22,14 +23,18 @@ export default function MomentsPage() {
             Cada recuerdo, con su historia completa.
           </p>
         </div>
-        <Button>Agregar recuerdo</Button>
+        <CreateMemoryDialog />
       </div>
 
-      <EmptyState
-        icon={Images}
-        title="Su primer recuerdo empieza acá"
-        description="Título, fecha, lugar, fotos, personas, emociones y la canción del momento — todo en un mismo lugar."
-      />
+      {memories.length === 0 ? (
+        <EmptyState
+          icon={Images}
+          title="Su primer recuerdo empieza acá"
+          description="Título, fecha, lugar, fotos, personas, emociones y la canción del momento — todo en un mismo lugar."
+        />
+      ) : (
+        <MemoryGrid memories={memories} />
+      )}
     </PageContainer>
   );
 }

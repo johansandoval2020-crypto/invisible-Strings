@@ -13,11 +13,12 @@ import {
 
 const initialState: AuthActionResult = {};
 
-export function SignupForm() {
+export function SignupForm({ redirectTo }: { redirectTo?: string }) {
   const [state, formAction, isPending] = useActionState(signupAction, initialState);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
+      {redirectTo && <input type="hidden" name="redirect" value={redirectTo} />}
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="displayName">Tu nombre</Label>
         <Input id="displayName" name="displayName" autoComplete="name" required />
@@ -60,7 +61,9 @@ export function SignupForm() {
       <p className="text-muted-foreground text-center text-sm">
         ¿Ya tenés cuenta?{" "}
         <Link
-          href="/login"
+          href={
+            redirectTo ? `/login?redirect=${encodeURIComponent(redirectTo)}` : "/login"
+          }
           className="text-foreground font-medium underline underline-offset-4"
         >
           Entrá

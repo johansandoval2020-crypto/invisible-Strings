@@ -33,6 +33,17 @@ npm run dev
 
 La app queda en `http://localhost:3000`.
 
+Además de las tablas, las fotos de los recuerdos necesitan un bucket de
+Supabase Storage: en el dashboard de tu proyecto, Storage → New bucket →
+nombre `memory-images`, marcado como **privado** (no público — las
+imágenes se sirven con URLs firmadas, ver
+`src/features/memories/infrastructure/storage.adapter.ts`).
+
+También aplicá las políticas de Row Level Security una vez corridas las
+migraciones de Prisma: pegá el contenido de
+`supabase/migrations/0001_row_level_security.sql` en el SQL Editor de
+Supabase y ejecutalo (ver docs/ARCHITECTURE.md §4.3).
+
 ## Variables de entorno
 
 Ver `.env.example` para la lista completa. Como mínimo, para desarrollo
@@ -103,8 +114,23 @@ comprobó sin errores antes de esta primera entrega.
 
 ## Roadmap
 
-El desarrollo avanza por fases (ver `docs/ARCHITECTURE.md` §9). Este
-commit inicial cubre la **Fase 0 — Fundaciones**: estructura del proyecto,
-Design System aplicado a Tailwind, esquema de base de datos, primitivos de
-UI, navegación completa (desktop + mobile), auth con Supabase (login,
-signup, esqueleto de emparejamiento de pareja) y CI en GitHub Actions.
+El desarrollo avanza por fases (ver `docs/ARCHITECTURE.md` §9).
+
+**Fase 0 — Fundaciones.** Estructura del proyecto, Design System aplicado
+a Tailwind, esquema de base de datos, primitivos de UI, navegación
+completa (desktop + mobile) y CI en GitHub Actions.
+
+**Fase 1 — MVP funcional.** Flujo de emparejamiento de pareja completo
+(crear espacio / unirse por invitación), CRUD de recuerdos con subida de
+imágenes a Supabase Storage, CRUD de álbumes con reordenamiento por
+arrastre (dnd-kit), timeline agrupado por año, favoritos, y el dashboard
+conectado a datos reales (días juntos, último recuerdo, recuerdo
+aleatorio). Sin los carruseles estilo Netflix ni el modo "Revivir este
+momento" todavía — eso es Fase 2.
+
+Ninguna de las dos fases pudo probarse contra una base de datos real
+dentro del entorno donde se armaron (sin salida de red a
+`binaries.prisma.sh` para generar el cliente de Prisma) — el código está
+completo y revisado, pero el primer smoke test real queda pendiente para
+cuando corras `prisma generate` + `prisma migrate dev` con tus
+credenciales de Supabase.

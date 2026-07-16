@@ -11,7 +11,13 @@ import { SignupForm } from "@/features/auth/presentation/components/signup-form"
 
 export const metadata: Metadata = { title: "Crear cuenta" };
 
-export default function SignupPage() {
+export default async function SignupPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ redirect?: string }>;
+}) {
+  const { redirect } = await searchParams;
+
   return (
     <div className="flex flex-1 items-center justify-center px-6 py-16">
       <Card className="w-full max-w-sm">
@@ -22,7 +28,7 @@ export default function SignupPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <SignupForm />
+          <SignupForm redirectTo={redirect} />
         </CardContent>
       </Card>
     </div>

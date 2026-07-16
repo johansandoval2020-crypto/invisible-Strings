@@ -13,11 +13,12 @@ import {
 
 const initialState: AuthActionResult = {};
 
-export function LoginForm() {
+export function LoginForm({ redirectTo }: { redirectTo?: string }) {
   const [state, formAction, isPending] = useActionState(loginAction, initialState);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
+      {redirectTo && <input type="hidden" name="redirect" value={redirectTo} />}
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="email">Correo</Label>
         <Input id="email" name="email" type="email" autoComplete="email" required />
@@ -46,7 +47,11 @@ export function LoginForm() {
       <p className="text-muted-foreground text-center text-sm">
         ¿Todavía no tienen cuenta?{" "}
         <Link
-          href="/signup"
+          href={
+            redirectTo
+              ? `/signup?redirect=${encodeURIComponent(redirectTo)}`
+              : "/signup"
+          }
           className="text-foreground font-medium underline underline-offset-4"
         >
           Creá una
