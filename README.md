@@ -40,9 +40,12 @@ imágenes se sirven con URLs firmadas, ver
 `src/features/memories/infrastructure/storage.adapter.ts`).
 
 También aplicá las políticas de Row Level Security una vez corridas las
-migraciones de Prisma: pegá el contenido de
-`supabase/migrations/0001_row_level_security.sql` en el SQL Editor de
-Supabase y ejecutalo (ver docs/ARCHITECTURE.md §4.3).
+migraciones de Prisma y creado el bucket: pegá, en orden, el contenido de
+cada archivo en `supabase/migrations/` (`0001_row_level_security.sql` y
+`0002_memory_images_storage_policies.sql`) en el SQL Editor de Supabase
+y ejecutalos (ver docs/ARCHITECTURE.md §4.3). El `0002` depende de las
+funciones que crea el `0001`, así que tiene que correr después — y de que
+el bucket `memory-images` ya exista, porque referencia sus objetos.
 
 ## Variables de entorno
 
