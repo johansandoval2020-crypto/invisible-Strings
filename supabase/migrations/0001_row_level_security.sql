@@ -3,9 +3,15 @@
 --
 -- Prisma gestiona el esquema (tablas, columnas, índices, foreign keys) vía
 -- `prisma migrate`. Esta migración se aplica por separado, directamente en
--- Supabase (SQL Editor o `supabase db push`), porque Prisma no administra
+-- Supabase (SQL Editor o el conector MCP), porque Prisma no administra
 -- políticas de RLS de forma nativa. Debe correr DESPUÉS de que
 -- `prisma migrate dev` haya creado las tablas.
+--
+-- Nota: Prisma mapea `String @id @default(uuid())` a columnas `text`, NO a
+-- `uuid` nativo de Postgres — se comprobó corriendo el `\d` sobre la tabla
+-- ya migrada. Por eso los helpers de acá trabajan en `text` (con cast
+-- explícito de `auth.uid()`, que sí es `uuid` nativo) en vez de `uuid`
+-- como haría un esquema con columnas uuid nativas.
 --
 -- Estrategia: cada tabla de tenant exige que `couple_id` coincida con el
 -- claim `couple_id` inyectado al JWT de sesión por el Auth Hook definido
@@ -25,16 +31,16 @@ stable
 as $$
 declare
   claims jsonb;
-  user_couple_id uuid;
+  user_couple_id text;
 begin
   select "coupleId" into user_couple_id
   from public.users
-  where id = (event->>'user_id')::uuid;
+  where id = (event->>'user_id');
 
   claims := event->'claims';
 
   if user_couple_id is not null then
-    claims := jsonb_set(claims, '{couple_id}', to_jsonb(user_couple_id::text));
+    claims := jsonb_set(claims, '{couple_id}', to_jsonb(user_couple_id));
   end if;
 
   event := jsonb_set(event, '{claims}', claims);
@@ -42,20 +48,24 @@ begin
 end;
 $$;
 
+alter function public.custom_access_token_hook(jsonb) set search_path = public;
+
 grant usage on schema public to supabase_auth_admin;
 grant execute on function public.custom_access_token_hook to supabase_auth_admin;
 grant select on public.users to supabase_auth_admin;
 
 -- ---------------------------------------------------------------------
--- 2. Helper: extrae couple_id del JWT actual.
+-- 2. Helper: extrae couple_id (text) del JWT actual.
 -- ---------------------------------------------------------------------
 create or replace function public.current_couple_id()
-returns uuid
+returns text
 language sql
 stable
 as $$
-  select nullif(current_setting('request.jwt.claims', true)::jsonb->>'couple_id', '')::uuid;
+  select nullif(current_setting('request.jwt.claims', true)::jsonb->>'couple_id', '');
 $$;
+
+alter function public.current_couple_id() set search_path = public;
 
 -- ---------------------------------------------------------------------
 -- 3. RLS por tabla de tenant.
@@ -67,7 +77,7 @@ create policy couples_isolation on public.couples
 
 alter table public.users enable row level security;
 create policy users_isolation on public.users
-  using (id = auth.uid() or "coupleId" = public.current_couple_id());
+  using (id = auth.uid()::text or "coupleId" = public.current_couple_id());
 
 alter table public.memories enable row level security;
 create policy memories_isolation on public.memories
